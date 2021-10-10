@@ -1,0 +1,466 @@
+---
+title: "Kickstarter Data Exploration"
+author: "Ian Scarff"
+date: "January 24, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data
+
+Use the 2018 data file for kickstarters.
+
+```{r}
+data <- read.csv("ks-projects-201801.csv")
+View(data)
+```
+
+#### Variables
+
+
+* Name
+    + The name of the kickstarter project
+    
+* Category
+    + Name of sub-catagory under main catagories
+    
+* Main_Catagory
+    + Name of main catagories.
+    
+* Currancy
+    + The type of currancy used in pledging money (3 letter abbreviations).
+    
+* Deadline
+    + Date kickstarter wants monetary goal to be reached (year - month - day).
+    
+* Goal
+    + The monetary goal set by the kickstarter (in terms of type of currancy).
+    
+* Launched
+    + Date the kick starter was started (year - month - day  hour:minute:second).
+    
+* Pledged
+    + The amount of money given to the kickstarter (in terms of type of currancy).
+    
+* State
+    + The current state of the kickstarter (Ex: successful, failed, ... etc.).
+    
+* Backers
+    + The number if people who gave money.
+    
+* Country
+    + The country of kickstarter origin (2 letter abbreviations).
+    
+* Usd.Pledged
+    + The amount of money pledged in terms of the U.S. Dollar (rounded).
+    
+* Usd_Pledged_Real
+    + The true amount of money (not rounded) pledged in terms of the U.S. Dollar.
+    
+* Usd_Goal_Real
+    + The true monetary goal (not rounded) set by the kickstarter in terms of the U.S. Dollar.
+
+
+
+#### Structure
+```{r}
+str(data)
+
+```
+
+
+The launched and deadline variables should be set as date variables.
+
+```{r}
+data$deadline <- as.Date(data$deadline)
+data$launched <- as.Date(data$launched)
+
+```
+
+What is the time range for these projects?
+
+```{r}
+range(data$deadline)
+range(data$launched)
+
+```
+
+Kickstarted was founded on April 28, 2009. Projects with launch dates in 1970 are not correct.
+
+How many projects are there like this?
+
+```{r}
+which(data$launched == min(data$launched))
+```
+
+There are 7 such project. Remove them.
+
+```{r}
+data <- data[-c(which(data$launched == min(data$launched))), ]
+
+range(data$launched)
+```
+
+##### Factor Variables
+
+Let's look at some of the factor variables.
+
+Main Categories
+```{r}
+levels(data$main_category)
+
+```
+There are 15 main categories
+
+```{r}
+table(data$main_category)
+barplot(table(data$main_category), main = "Main Categories")
+
+```
+
+Film & Video is the largest category
+
+
+
+Sub Categories
+
+```{r}
+levels(data$category)
+```
+
+There are 159 sub categories across the 15 main categories
+
+```{r}
+table(data$category)
+barplot(table(data$category), main = "Sub Categories")
+
+
+```
+
+Product Design is the largest sub category
+
+
+
+Currancy
+```{r}
+levels(data$currency)
+```
+
+
+There are 14 types of currancy
+
+* AUD
+    + Australian Dollar
+    
+* CAD
+    + Canadian Dollar
+    
+* CHF
+    + Swiss Frank
+    
+* DKK
+    + Danich Krone
+    
+* EUR
+    + Euro
+    
+* GBP
+    + Great British Pound
+    
+* HKD
+    + Hong Kong Dollar
+    
+* JPY
+    + Japanese Yen
+    
+* MXN
+    + Mexican Peso
+
+* NOK
+    + Norwegian Krone
+    
+* NZD
+    + New Zealand Dollar
+    
+* SEK
+    + Swedish Krona
+    
+* SGD
+    + Singapore Dollar
+    
+* USD
+    + United States Dollar
+    
+    
+```{r}
+### Make separate data frames for each currancy
+
+aud <- length(which(data$currency == "AUD"))
+cad <- length(which(data$currency == "CAD"))
+chf <- length(which(data$currency == "CHF"))
+dkk <- length(which(data$currency == "DKK"))
+eur <- length(which(data$currency == "EUR"))
+gbp <- length(which(data$currency == "GBP"))
+hkd <- length(which(data$currency == "HKD"))
+jpy <- length(which(data$currency == "JPY"))
+mxn <- length(which(data$currency == "MXN"))
+nok <- length(which(data$currency == "NOK"))
+nzd <- length(which(data$currency == "NZD"))
+sek <- length(which(data$currency == "SEK"))
+sgd <- length(which(data$currency == "SGD"))
+usd <- length(which(data$currency == "USD"))
+
+```
+
+```{r}
+barplot(table(data$currency), main = "Currancy")
+```
+
+```{r}
+
+### This function makes a pie graph
+### Takes in the size of each slice, the labels for each slice, and the title
+makePie <- function(slices, labels, title){
+
+  ### Calculates what percent a slice takes of whole
+  percent <- round(slices/sum(slices)*100)
+  
+  ### Creates the final label
+  labels <- paste(labels,percent, sep = "  ")
+  labels <- paste(labels,"%",sep="")
+  labels <- paste(labels,slices, sep = " = ")
+  
+  ### Generates pie graph
+  pie(slices, labels = labels, main = title)
+  
+  ### Displays labels
+  labels
+}
+
+
+### Set slices and labels
+CUR.SLICES <- c(aud,cad,chf,dkk,eur,gbp,hkd,jpy,mxn,nok,nzd,sek,sgd,usd)
+CUR.LABELS <- levels(data$currency)
+
+### Make pie graph
+makePie(CUR.SLICES, CUR.LABELS, "Currency")
+
+
+
+
+```
+
+The United States Dollar is the most used currancy.
+
+
+
+State
+
+```{r}
+levels(data$state)
+
+
+
+```
+
+* Canceled
+    + A project was canceled before the deadline.
+    
+* Failed
+    + A project did not make enough money by the deadline.
+    
+* Live
+    + Projects that are currently on going.
+    
+* Successful
+    + A project made or exceeded their goal by the deadline.
+
+* Suspended
+    + A project was suspended because it violated the terms & services of Kickstarter.
+    
+    
+What is up with this undefined variable? Take a closer look.
+
+```{r}
+data.und <- data[data$state == "undefined",]
+View(data.und)
+
+head(data.und)
+```
+
+The rows with an undefined state level have many other problems. A big problem is the country. They are labeled under a country with the title of N,0", which is not a country. It can't be a misspelling of Norway because of the varying types of currancy throughout the rows.
+
+```{r}
+nrow(data.und)
+```
+
+There is a miniscule amount of rows that contain undefinded values. Remove them.
+
+```{r}
+data <- data[data$state != "undefined",]
+table(data$state)
+
+```
+
+They have been removed.
+
+```{r}
+
+### Make separate data frames for each state
+CANC <- length(which(data$state == "canceled"))
+FAIL <- length(which(data$state == "failed"))
+LIVE <- length(which(data$state == "live"))
+SUCC <- length(which(data$state == "successful"))
+SUSP <- length(which(data$state == "suspended"))
+
+### Set slices and labels
+ST.SLICES <- c(CANC, FAIL, LIVE, SUCC, SUSP)
+ST.LABELS <- levels(data$state[-6])
+
+### Make pie graph
+makePie(ST.SLICES, ST.LABELS, "State")
+
+
+
+```
+
+Naturally, we expect the number of failures to be much greater than the number of successes. If we include canceled and suspended projects in the failed category, the number grows.
+
+
+##### Statistics
+
+Let's look at some statistics for the usd_goal_real variable.
+
+```{r}
+range(data$usd_goal_real)
+mean(data$usd_goal_real)
+median(data$usd_goal_real)
+
+```
+
+We see that the amount of money that projects request range wildly. The mean and median are drastically different, signifying there are large outliers and this variable is heavily right skewed.
+
+
+Look at statistics for the usd_pledged_real variable.
+
+```{r}
+range(data$usd_pledged_real)
+mean(data$usd_pledged_real)
+median(data$usd_pledged_real)
+```
+
+We see that the amount of money that people pledge varies wildly. The mean and median are drastically different, signifying there are large outliers and this variable is heavily right skewed.
+
+
+Look at statistics for the backers variable.
+
+```{r}
+range(data$backers)
+mean(data$backers)
+median(data$backers)
+```
+We see that the amount of backers for each project varies wildly. The mean and median are drastically different, signifying there are large outliers and this variable is heavily right skewed.
+
+
+
+It is logical to think that most very large project would have either few backers or would have a high number of pledges and backers if successful. Most projects are smaller or mid-level in size.
+
+
+
+##### New Variable
+
+An important factor to think about is the amount of time the kickstarter runs for (i.e. the amount of time between the launch date and the deadline).
+
+Create a new variable to hold these values.
+
+```{r}
+RunTime <- rep(NA, times = nrow(data))
+
+### Calculate length of time
+for (i in 1:length(RunTime)){
+  
+  RunTime[i] <- difftime(data$deadline[i], data$launched[i], units = "days")
+  
+}
+
+```
+
+Add this variable to the data
+
+```{r}
+data[16] <- RunTime
+colnames(data)[16] <- "RunTime"
+```
+
+
+
+```{r}
+range(data$RunTime)
+mean(data$RunTime)
+median(data$RunTime)
+```
+
+We can see that project run times vary, but have a similar mean and median.
+
+```{r}
+hist(data$RunTime)
+abline(v = mean(data$RunTime), col = "red", lwd = 2, lty = 1)
+abline(v = median(data$RunTime), col = "green", lwd = 2, lty = 2)
+legend("topright", legend = c("mean","median"), col = c("red","green"), 
+       lwd = c(2,2), lty = c(1,2))
+
+```
+
+We can see that there are some projects that take way longer than the mean or median, making the run time right skewd.
+
+
+
+#### Next Step Considerations
+
+For the purposes of this project, I propose we use only use kickstarters from the United States. Along with being the country with a large majority of the data set, it would remove undefined variable and that odd country name along with focusing on one currancy.
+
+Since one of the statistical methods we will use is logistic regression, this eliminates country and currancy as predictors.
+
+We still need to come up with another statistical methods to use and we need to form hypotheses to answer (Ex: If factor X important).
+
+
+
+```{r}
+
+data.US <- data[data$country == "US",]
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
